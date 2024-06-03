@@ -1,6 +1,6 @@
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpEventType, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { map, catchError } from 'rxjs/operators';
+import { map, catchError, tap } from 'rxjs/operators';
 
 import { Post } from './post.model';
 import { Subject, throwError } from 'rxjs';
@@ -15,7 +15,10 @@ export class PostsService {
     this.http
       .post<{ name: string }>(
         'https://angular-http-project-8f437-default-rtdb.europe-west1.firebasedatabase.app/posts.json',
-        postData
+        postData, 
+        {
+          observe: 'response'
+        }
       )
       .subscribe((responseData) => {
         console.log(responseData);
@@ -25,11 +28,15 @@ export class PostsService {
   }
 
   fetchPosts() {
+    let searchParams = new HttpParams();
+    searchParams = searchParams.append('print', 'pretty');
+    searchParams = searchParams.append('custom', 'key');
     return this.http
     .get<{ [key: string]: Post }>(
       'https://angular-http-project-8f437-default-rtdb.europe-west1.firebasedatabase.app/posts.json',
       {
-        headers: new HttpHeaders({'Custom-Header': 'Hello'})
+        headers: new HttpHeaders({'Custom-Header': 'Hello'}),
+        params: searchParams
       }
   )
     .pipe(
@@ -51,7 +58,20 @@ export class PostsService {
   };
 
   deletePosts() {
-     return this.http.delete('https://angular-http-project-8f437-default-rtdb.europe-west1.firebasedatabase.app/posts.json')
+     return this.http.delete(
+      'https://angular-http-project-8f437-default-rtdb.europe-west1.firebasedatabase.app/posts.json',
+      {
+        observe: 'events'
+      }
+    ).pipe(tap(event => {
+        console.log(event);
+        if (event.type === HttpEventType.Sent) {
+          // ...
+        }
+        if (event.type === HttpEventType.Response) {
+          console.log(event.body);
+        } 
+    }));
   }
 
 }
